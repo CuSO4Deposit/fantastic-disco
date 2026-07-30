@@ -1,0 +1,12 @@
+# Uploaders to leave out of the generated data.
+#
+# Copy to blocked.txt (gitignored) and list one uploader name per line, matched
+# exactly as it appears in the data. Blank lines and # comments are ignored.
+#
+# This only affects what the loaders emit. The archive keeps everything, and CPI
+# still reports it — so removing a name here brings the videos straight back.
+# Pages state how many rows were excluded rather than pretending the totals are
+# complete.
+
+# 景观设计-米
+# some channel I would rather not see in screenshots

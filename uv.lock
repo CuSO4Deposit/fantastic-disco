@@ -1,0 +1,29 @@
+version = 1
+revision = 3
+requires-python = ">=3.12"
+
+[[package]]
+name = "cpi"
+version = "0.1.0"
+source = { editable = "../CPI" }
+
+[package.metadata]
+requires-dist = [{ name = "cachew", marker = "extra == 'cache'", specifier = ">=0.15.20231019" }]
+provides-extras = ["cache"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.11" },
+    { name = "pytest", specifier = ">=8.0" },
+]
+
+[[package]]
+name = "observable-cuso4d"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "cpi" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "cpi", editable = "../CPI" }]

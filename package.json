@@ -1,0 +1,22 @@
+{
+  "name": "observable-cuso4d",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "refresh": ".venv/bin/python3 scripts/refresh.py",
+    "predev": "npm run refresh",
+    "dev": "observable preview",
+    "prebuild": "npm run refresh",
+    "build": "observable build",
+    "clean": "rimraf src/.observablehq/cache"
+  },
+  "dependencies": {
+    "@observablehq/framework": "^1.13.0"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
