@@ -2,6 +2,8 @@
   lib,
   stdenvNoCC,
   writeShellApplication,
+  bash,
+  coreutils,
   nodejs,
   fetchNpmDeps,
   npmHooks,
@@ -63,6 +65,10 @@ writeShellApplication {
   runtimeInputs = [
     nodejs
     python
+    # npm spawns `sh` to run package scripts, and a systemd unit has no PATH of its
+    # own to fall back on: without this the build dies with `spawn sh ENOENT`.
+    bash
+    coreutils
   ];
 
   text = ''
