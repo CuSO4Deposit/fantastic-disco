@@ -15,3 +15,10 @@ __pycache__/
 .direnv/
 .pre-commit-config.yaml
 .DS_Store
+
+# nix build output
+result
+result-*
+
+# Which things I follow is personal; the matching code is not.
+fandoms.txt

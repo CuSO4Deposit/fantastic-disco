@@ -1,8 +1,12 @@
+import {existsSync} from "node:fs";
+
 // Framework maps `.py` to a bare `python3` on $PATH. There is no system python3 on
 // NixOS, so a dev server started outside the activated venv fails with
-// `spawn python3 ENOENT`. Pointing at the venv's interpreter makes loaders work
-// regardless of which shell launched the server.
-const python = new URL("./.venv/bin/python3", import.meta.url).pathname;
+// `spawn python3 ENOENT`. Prefer the venv's interpreter so loaders work regardless
+// of which shell launched the server, but fall back to PATH: in the Nix build there
+// is no venv, and the interpreter there already carries CPI.
+const venvPython = new URL("./.venv/bin/python3", import.meta.url).pathname;
+const python = existsSync(venvPython) ? venvPython : "python3";
 
 export default {
   title: "cuso4d",

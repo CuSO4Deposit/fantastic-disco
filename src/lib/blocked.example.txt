@@ -8,5 +8,5 @@
 # Pages state how many rows were excluded rather than pretending the totals are
 # complete.
 
-# 景观设计-米
-# some channel I would rather not see in screenshots
+# Some Channel Name
+# another channel I would rather not see in screenshots

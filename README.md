@@ -52,7 +52,7 @@ Copy `src/lib/blocked.example.txt` to `src/lib/blocked.txt` (gitignored) and lis
 uploader names, one per line, matched exactly:
 
 ```
-凛上开花☆ako
+Some Channel Name
 ```
 
 Filtering happens in the loader, never in CPI: the library's job is to report what

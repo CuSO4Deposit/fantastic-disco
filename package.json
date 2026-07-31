@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "refresh": ".venv/bin/python3 scripts/refresh.py",
+    "refresh": "node scripts/run-python.mjs scripts/refresh.py",
     "predev": "npm run refresh",
     "dev": "observable preview",
     "prebuild": "npm run refresh",

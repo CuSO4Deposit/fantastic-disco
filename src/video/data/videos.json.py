@@ -67,9 +67,20 @@ def main() -> None:
             }
         )
 
-    # Reported so the page can say totals are partial rather than quietly differ
-    # from the archive.
-    json.dump({"excluded": excluded, "videos": rows}, sys.stdout, ensure_ascii=False)
+    json.dump(
+        {
+            # Reported so pages can say totals are partial rather than quietly
+            # differing from the archive.
+            "excluded": excluded,
+            # Emitted rather than hardcoded in the page: the group names are local
+            # configuration, and a page that spelled them out would put them back
+            # into the repo.
+            "groups": list(fandoms.groups()),
+            "videos": rows,
+        },
+        sys.stdout,
+        ensure_ascii=False,
+    )
 
 
 if __name__ == "__main__":

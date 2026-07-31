@@ -5,6 +5,10 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
+    cpi = {
+      url = "git+file:///home/cuso4d/source/CPI";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -20,8 +24,23 @@
         "x86_64-darwin"
       ];
       perSystem =
-        { config, pkgs, ... }:
         {
+          config,
+          pkgs,
+          inputs',
+          ...
+        }:
+        {
+          packages = {
+            default = config.packages.site;
+            # A build command rather than the built site: producing the site means
+            # reading the archive, which the Nix sandbox cannot do. Everything pure
+            # is packaged; the archive path is passed at run time.
+            site = pkgs.callPackage ./package.nix {
+              cpi = inputs'.cpi.packages.cpi;
+            };
+          };
+
           pre-commit.settings = {
             src = ./.;
             hooks = {

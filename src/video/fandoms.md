@@ -16,15 +16,17 @@ const searchData = FileAttachment("./data/searches.json").json();
 ```js
 const videos = raw.videos;
 const watched = videos.filter((d) => d.watched);
-const names = ["Mea", "QuizKnock"];
+// From the loader, not written out here: the group names are local configuration,
+// and spelling them out in a page would put them back into the repo.
+const names = raw.groups;
 const groups = [...names, "Everything else"];
 
-// A video with no tag is "everything else"; the one video matching both goes to its
-// first tag so the groups stay disjoint and shares add to 100%.
+// A video with no tag is "everything else"; one matching several goes to its first
+// tag so the groups stay disjoint and shares add to 100%.
 const groupOf = (d) => (d.fandoms.length ? d.fandoms[0] : "Everything else");
 const colour = {
   domain: groups,
-  range: ["#e4739b", "#4a9dd8", "#666"],
+  range: [...d3.schemeTableau10.slice(0, names.length), "#666"],
 };
 const hours = (rows) => d3.sum(rows, (d) => d.duration_s ?? 0) / 3600;
 ```
@@ -182,11 +184,9 @@ display(
 ```
 
 The overall picture had two humps — keeping up, and digging through old material.
-Splitting it by group puts each habit somewhere specific, and it is the opposite way
-round from what "following something" suggests: everything else is what gets watched
-fresh, while the followed things are mostly archive. QuizKnock is the extreme case,
-with almost nothing watched within two days of upload and roughly half of it three
-years old or more.
+Splitting it by group puts each habit somewhere specific, and it comes out the
+opposite way round from what "following something" suggests: everything else is what
+gets watched fresh, while the followed things are mostly archive.
 
 ## Backlog and returns
 
@@ -281,7 +281,7 @@ Plot.plot({
 ## The rows behind all this
 
 ```js
-const pick = view(Inputs.select(["Mea", "QuizKnock"], { label: "Group" }));
+const pick = view(Inputs.select(names, { label: "Group" }));
 ```
 
 ```js

@@ -1,0 +1,18 @@
+# Groups to break my watching down by, one per line:
+#
+#     Display Name = keyword, keyword, keyword
+#
+# Copy to fandoms.txt (gitignored) and fill in your own. Blank lines and # comments
+# are ignored. Keywords match as case-insensitive substrings of a video's title and
+# uploader, so a group only finds videos that *say* the name — every per-group number
+# is a floor, not a total.
+#
+# Which groups those are is personal in a way the mechanism is not, hence the split:
+# the code lives in the repo, the names stay on this machine.
+#
+# Keep keywords long enough to be unambiguous. Check a candidate against real data
+# before trusting it: short ones catch unrelated videos, and a keyword that never
+# matches anything the longer ones missed only makes the list look thorough.
+
+# Some Streamer = SomeStreamer, streamer nickname, 略称
+# Some Show = ShowName, show, host surname
