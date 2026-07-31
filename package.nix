@@ -78,6 +78,17 @@ writeShellApplication {
     # person whose data this is, so they stay out of the store and are passed in at
     # run time; absent, the site simply publishes everything untagged.
     #
+    # Two environment variables are read rather than taken as arguments, since both
+    # are properties of the machine's archive rather than of one build:
+    #
+    #   CPI_GADGETBRIDGE_EXPORTS  where the band backups are. Optional — unset simply
+    #                             leaves the band pages out.
+    #   CPI_LOCAL_TZ              the IANA zone the data was recorded in. Required
+    #                             once band data is present, and deliberately without
+    #                             a default: it decides which local midnight splits a
+    #                             day, and a wrong boundary leaves every daily total
+    #                             looking like a perfectly plausible number.
+    #
     # Publishing is an atomic rename: nginx must never serve a half-written tree, and
     # a failed build must leave the previous site up rather than replacing it with
     # something broken.
@@ -85,6 +96,12 @@ writeShellApplication {
     exports=''${1:?$usage}
     outdir=''${2:?$usage}
     configdir=''${3:-}
+
+    if [ -n "''${CPI_GADGETBRIDGE_EXPORTS:-}" ] && [ -z "''${CPI_LOCAL_TZ:-}" ]; then
+      echo "CPI_GADGETBRIDGE_EXPORTS is set but CPI_LOCAL_TZ is not; refusing to" >&2
+      echo "build band pages on an assumed timezone" >&2
+      exit 1
+    fi
 
     # Refuse to build from nothing: an empty glob would otherwise publish a site
     # claiming the watch history is empty.
@@ -111,6 +128,16 @@ writeShellApplication {
           echo "using $configdir/$f" >&2
         fi
       done
+    fi
+
+    # A source with no archive to read is removed rather than left to fail. Deleting
+    # the directory is what makes it optional: both the nav and the landing page derive
+    # their entries from what is on disk, so this drops the pages and every link to
+    # them together. Leaving the pages in place would fail the build on the first
+    # loader that found its variable unset.
+    if [ -z "''${CPI_GADGETBRIDGE_EXPORTS:-}" ]; then
+      echo "CPI_GADGETBRIDGE_EXPORTS unset; building without the band pages" >&2
+      rm -rf src/band
     fi
 
     export CPI_PIPEPIPE_EXPORTS="$exports"

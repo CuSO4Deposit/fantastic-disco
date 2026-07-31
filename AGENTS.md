@@ -53,8 +53,31 @@ only bilibili's `BV` prefix is actually distinguishable. Claims about shape
 (bimodal, spike, cluster) need the same treatment — the completion histogram has one
 peak and a flat tail, not the two peaks it looks like it should have.
 
-**Charts must be sound for the data that exists.** See below — with one snapshot,
-a per-day chart is not a rough chart, it is a wrong one.
+**A channel name is a column name.** `fill: "asleep"` looks like a constant but is a
+lookup, so a name that is not a column yields undefined for every row and the mark
+draws nothing — axes, title and legend all render, so the page looks finished. To
+stack two measures held in separate columns, reshape to long form (one row per
+category) rather than layering two marks with `y1`/`y2`.
+
+**Never read clock fields off a `Date` in a page.** `getHours`, `getDay` and
+`toISOString` all convert to whatever timezone the *browser* is in, which is not where
+the data was recorded. On a UTC machine an 01:58+08:00 bedtime displayed as 18:06, an
+evening — a plausible number, wrong by eight hours. Loaders emit offset-bearing ISO
+strings; slice the characters, or anchor at UTC explicitly.
+
+**`type: "utc"` needs UTC-anchored dates.** `new Date("2026-07-30T00:00")` is midnight
+where the browser is, which a utc axis renders as the 29th for anyone east of UTC.
+Append `Z` when parsing a date-only string for a time axis.
+
+**Two series on one axis need one convention.** Bedtime past midnight was noon-shifted
+(so 01:00 read as 25) while waking was raw, putting a 22:00 wake and a 22:00 bedtime at
+the same height with opposite meanings. Derive the second from the first rather than
+reading each off the clock independently.
+
+**Charts must be sound for the data that exists.** See below — for PipePipe, with one
+snapshot, a per-day chart is not a rough chart, it is a wrong one. What a source can
+support is a fact about that source, so check the section for the one you are
+plotting rather than carrying a limit across.
 
 ## Structure
 
@@ -81,6 +104,11 @@ status by hand, don't pipe it through `grep` first — you will read grep's stat
 
 ## What the data cannot support
 
+Per source, since these follow from how each app stores its data. Nothing here
+generalizes to a source not named.
+
+### PipePipe
+
 PipePipe keeps one history row per video, overwriting its timestamp on every play,
 so only the last watch survives in any export.
 
@@ -94,3 +122,21 @@ so only the last watch survives in any export.
   as zero.
 - Some upload dates are derived from relative strings ("3 days ago"). Filter on
   `uploaded_is_approximate` before any chart keyed on upload time.
+
+### Gadgetbridge
+
+The opposite storage model: samples accumulate, one immutable row per minute, so a
+single export already holds the full history. Per-day and per-week charts are sound
+here — the PipePipe limit above does not apply. Snapshots still matter, but only
+because the band buffers about a week and drops what was never synced.
+
+- Sample rows are not minutes. Some are sub-minute rows written during a live heart
+  rate measurement, so counting rows overstates coverage — one month came out at
+  110%. Count distinct minutes.
+- Days with no data and days spent not wearing the band are not zero-step days.
+  Divide by worn time, and let a page say how much was excluded.
+- Deep sleep is systematically low (~10% of sleep, against 13-23% typical). That is
+  this band's staging through Gadgetbridge, not a finding about the sleeper.
+- No workouts, SpO2, PAI or resting heart rate: those tables are empty. Resting
+  heart rate has to be derived from sleeping minutes.
+- The 5-minute stress series claims 0-100 but has a few values above 250.
