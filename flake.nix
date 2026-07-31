@@ -6,7 +6,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     pre-commit-hooks.url = "github:cachix/git-hooks.nix";
     cpi = {
-      url = "git+file:///home/cuso4d/source/CPI";
+      url = "github:CuSO4Deposit/CPI";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
