@@ -123,6 +123,17 @@ writeShellApplication {
     staging="$outdir.new.$$"
     rm -rf "$staging"
     cp -r dist "$staging"
+
+    # Hand the tree to the group owning the parent directory — a web server, when
+    # this publishes into one. New directories otherwise take the builder's primary
+    # group, which no amount of supplementary groups on the service will fix, and
+    # the site answers 404 with `Permission denied` in the server log.
+    if group=$(stat -c %G "$(dirname "$outdir")") && [ "$group" != "$(id -gn)" ]; then
+      chgrp -R "$group" "$staging"
+    fi
+    # Group-readable, never group-writable, nothing for anyone else. Keeps the owner's
+    # write bit so the next run can replace the tree.
+    chmod -R u+rwX,g=rX,o= "$staging"
     # Rename over the target so readers see the old tree or the new one, never a mix.
     if [ -e "$outdir" ]; then
       old="$outdir.old.$$"
