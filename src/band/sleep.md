@@ -120,9 +120,6 @@ Plot.plot({
 })
 ```
 
-<div class="grid grid-cols-2">
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "Distribution of nights",
@@ -139,9 +136,6 @@ Plot.plot({
 })
 ```
 
-  </div>
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "By day of week",
@@ -157,9 +151,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-</div>
 
 ## When
 

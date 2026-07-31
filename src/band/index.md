@@ -117,9 +117,6 @@ if (goal) {
 }
 ```
 
-<div class="grid grid-cols-2">
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "When the walking happens",
@@ -134,9 +131,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-  <div class="card">
 
 ```js
 Plot.plot({
@@ -153,9 +147,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-</div>
 
 ## Heart rate
 
@@ -192,9 +183,6 @@ The two populations barely overlap, which is what makes a resting rate recoverab
 all: this band records no resting heart rate series of its own, so the figure in the
 card above is the 5th percentile of each night's sleeping minutes.
 
-<div class="grid grid-cols-2">
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "Resting heart rate over time",
@@ -209,9 +197,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-  <div class="card">
 
 ```js
 Plot.plot({
@@ -228,18 +213,12 @@ Plot.plot({
 })
 ```
 
-  </div>
-</div>
-
 ## Stress
 
 ```js
 const stressTotal = rhythm.stress_readings;
 const stressBin = rhythm.stress_bin;
 ```
-
-<div class="grid grid-cols-2">
-  <div class="card">
 
 ```js
 Plot.plot({
@@ -256,15 +235,12 @@ Plot.plot({
 })
 ```
 
-  </div>
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "Stress against heart rate",
   subtitle: `${d3.sum(rhythm.stress_vs_heart_rate, (d) => d.count).toLocaleString()} readings paired with a reading from the same minute`,
   width,
-  height: 240,
+  height: 300,
   x: { label: "Stress →", domain: [0, 100] },
   y: { label: "bpm", domain: [d3.min(rhythm.stress_vs_heart_rate, (d) => d.bpm), d3.max(rhythm.stress_vs_heart_rate, (d) => d.bpm) + hrBin] },
   color: { scheme: "YlGnBu", label: "Minutes", legend: true, type: "sqrt" },
@@ -273,9 +249,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-</div>
 
 ```js
 // Weighted least squares over the binned counts. Bin midpoints, since a bin's label
