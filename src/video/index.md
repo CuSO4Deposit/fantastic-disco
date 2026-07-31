@@ -99,9 +99,6 @@ bottom. Note that a position at exactly 100% is mostly the player rounding up.
 
 ## Where the attention goes
 
-<div class="grid grid-cols-1">
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "Most-watched uploaders",
@@ -124,9 +121,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-  <div class="card">
 
 ```js
 const lengths = watched.filter((d) => d.duration_s > 0).map((d) => d.duration_s / 60);
@@ -158,9 +152,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-</div>
 
 ## How current is any of this
 
@@ -216,9 +207,6 @@ const reachedBy = (d) =>
   d.playlists.length ? "in a playlist" : d.feed_from ? "from a feed" : "neither";
 ```
 
-<div class="grid grid-cols-2">
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "How the never-played were reached",
@@ -234,9 +222,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-  <div class="card">
 
 ```js
 Plot.plot({
@@ -259,9 +244,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-</div>
 
 ## What the feed actually converts
 
@@ -475,9 +457,6 @@ YouTube id is indistinguishable from a short query.
 
 </div>
 
-<div class="grid grid-cols-1">
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "Query length, real searches only",
@@ -496,9 +475,6 @@ Plot.plot({
 })
 ```
 
-  </div>
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "Searches by service",
@@ -513,6 +489,3 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-</div>

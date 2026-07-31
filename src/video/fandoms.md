@@ -205,9 +205,6 @@ const summary = groups.map((g) => {
 });
 ```
 
-<div class="grid grid-cols-2">
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "Never played",
@@ -226,9 +223,6 @@ Plot.plot({
 })
 ```
 
-  </div>
-  <div class="card">
-
 ```js
 Plot.plot({
   title: "Watched more than once",
@@ -246,9 +240,6 @@ Plot.plot({
   ],
 })
 ```
-
-  </div>
-</div>
 
 ## Searching
 

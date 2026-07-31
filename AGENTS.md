@@ -32,6 +32,22 @@ loader, since a loader only runs once Framework has already decided to run it.
 Markdown paragraph and the remainder renders as literal source. Use a JS block with
 `display()` for anything conditional.
 
+## Layout
+
+**Every chart gets its own full-width row.** Write chart blocks as bare ```js fences
+with no `<div class="grid">` or `<div class="card">` around them. Two charts sharing a
+`grid-cols-2` row each lose half the horizontal axis, which is the one carrying the
+data: at that width a 618-point daily series and a 28-bin histogram stop being
+readable rather than merely getting cramped.
+
+**Only stat cards go multi-column.** A `grid-cols-N` row is for cards holding one
+number each — the `class="big"` rows counting days recorded or median sleep. A single
+number does not care how wide its box is.
+
+**A chart freed from a shared row can take the space as height too.** The
+stress-versus-heart-rate heatmap went from 240 to 300px once it had the full width,
+its y axis spanning 135bpm in 5bpm bins.
+
 ## Plot traps hit so far
 
 **`percent: true` is a scale transform.** It multiplies by 100 *before* the scale, so
