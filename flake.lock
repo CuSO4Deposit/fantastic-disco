@@ -211,7 +211,24 @@
         "cpi": "cpi",
         "flake-parts": "flake-parts_2",
         "nixpkgs": "nixpkgs_2",
-        "pre-commit-hooks": "pre-commit-hooks_2"
+        "pre-commit-hooks": "pre-commit-hooks_2",
+        "y-offline": "y-offline"
+      }
+    },
+    "y-offline": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1780222341,
+        "narHash": "sha256-GwWC0aBkPMh1tE4SAnAVxe2tAdhyxdHCISBoAFVa5Wo=",
+        "ref": "refs/heads/main",
+        "rev": "b86781664be34483c56fdc0207fc0f8666a7c326",
+        "revCount": 98,
+        "type": "git",
+        "url": "ssh://git@codeberg.org/cocvu/Y-Offline.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@codeberg.org/cocvu/Y-Offline.git"
       }
     }
   },

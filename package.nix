@@ -12,6 +12,7 @@
   npmHooks,
   python3,
   cpi,
+  y-offline,
 }:
 # The site cannot be a single derivation. Building it means reading the archived
 # exports, and the sandbox has no access to them (verified: /data/redmi50 is simply
@@ -19,7 +20,14 @@
 # the page sources, the interpreter carrying CPI — and hands back a command that
 # performs the impure step wherever the archive is readable.
 let
-  python = python3.withPackages (_: [ cpi ]);
+  # Both libraries, because the loaders are split across them: the video, band and
+  # Firefox loaders read exports through CPI, and the rhythm loaders read a score
+  # database through Y-Offline. An interpreter carrying only CPI builds every page
+  # except the rhythm ones, which fail at load time rather than at evaluation.
+  python = python3.withPackages (_: [
+    cpi
+    y-offline
+  ]);
 
   src = lib.fileset.toSource {
     root = ./.;
@@ -94,10 +102,16 @@ writeShellApplication {
     #                             the same way, and a glob rather than a path: the
     #                             archive holds one file per machine per export.
     #   CPI_LOCAL_TZ              the IANA zone the data was recorded in. Required
-    #                             once band or Firefox data is present, and deliberately
-    #                             without a default: it decides which local midnight
-    #                             splits a day, and a wrong boundary leaves every daily
-    #                             total looking like a perfectly plausible number.
+    #                             once band, Firefox or rhythm data is present, and
+    #                             deliberately without a default: it decides which local
+    #                             midnight splits a day, and a wrong boundary leaves every
+    #                             daily total looking like a perfectly plausible number.
+    #   YOFFLINE_DB               the Y-Offline score database. Optional; unset leaves the
+    #   YOFFLINE_USER             rhythm pages out. Both are needed, and so is at least
+    #   ARCSONG_DB                one catalogue — Y-Offline cannot rate a play without
+    #   PJSK_MUSICS_JSON          one, so a database with no catalogue would fail the
+    #   PJSK_DIFFICULTIES_JSON    build rather than drop the section.
+    #   CYTUS2_CHARTS_JSON
     #
     # Publishing is an atomic rename: nginx must never serve a half-written tree, and
     # a failed build must leave the previous site up rather than replacing it with
@@ -107,8 +121,11 @@ writeShellApplication {
     outdir=''${2:?$usage}
     configdir=''${3:-}
 
+    # `YOFFLINE_DB` joins the list because the rhythm loaders split days on the timezone
+    # too. Caught up front rather than left to a loader: the failure would otherwise land
+    # after node_modules is copied and half the pages are built.
     if [ -z "''${CPI_LOCAL_TZ:-}" ]; then
-      for var in CPI_GADGETBRIDGE_EXPORTS CPI_FIREFOX_EXPORTS; do
+      for var in CPI_GADGETBRIDGE_EXPORTS CPI_FIREFOX_EXPORTS YOFFLINE_DB; do
         if [ -n "''${!var:-}" ]; then
           echo "$var is set but CPI_LOCAL_TZ is not; refusing to build" >&2
           echo "its pages on an assumed timezone" >&2
@@ -156,6 +173,19 @@ writeShellApplication {
     if [ -z "''${CPI_FIREFOX_EXPORTS:-}" ]; then
       echo "CPI_FIREFOX_EXPORTS unset; building without the Firefox pages" >&2
       rm -rf src/firefox
+    fi
+    # The rhythm pages need a score database *and* at least one chart catalogue, since
+    # Y-Offline cannot rate a play without one. Either missing drops the section: a
+    # catalogue with no database has nothing to rate, and a database with no catalogue
+    # would leave `catalogues.games()` exiting non-zero mid-build.
+    if [ -z "''${YOFFLINE_DB:-}" ] || [ -z "''${YOFFLINE_USER:-}" ]; then
+      echo "YOFFLINE_DB or YOFFLINE_USER unset; building without the rhythm pages" >&2
+      rm -rf src/rhythm
+    elif [ -z "''${ARCSONG_DB:-}" ] \
+      && [ -z "''${PJSK_MUSICS_JSON:-}" ] \
+      && [ -z "''${CYTUS2_CHARTS_JSON:-}" ]; then
+      echo "no rhythm chart catalogue configured; building without the rhythm pages" >&2
+      rm -rf src/rhythm
     fi
 
     export CPI_PIPEPIPE_EXPORTS="$exports"

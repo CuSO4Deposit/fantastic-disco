@@ -62,7 +62,23 @@ than `/data/lexikos/...`.
 
 At least one rhythm catalogue must be configured if `src/rhythm/` is present; the
 loaders refuse otherwise, since Y-Offline cannot rate a play without one and "no
-catalogue" would render identically to "never played".
+catalogue" would render identically to "never played". `observable-cuso4d-build` drops
+`src/rhythm/` when `YOFFLINE_DB`/`YOFFLINE_USER` or every catalogue is unset, the same
+way it drops the band and Firefox pages, so an unconfigured machine publishes a site
+without that section rather than failing.
+
+**Y-Offline is packaged here, not consumed from its flake.** Its own flake exposes a
+`buildPythonApplication` built against `python313Packages`, which is an application: it
+carries no `pythonModule`, so `python3.withPackages` accepts it silently and
+`import y_offline` then fails at run time — the site builds with only the rhythm loaders
+dead. `nix/y-offline.nix` builds it as a library instead, from a `flake = false` source
+input, listing only the three runtime dependencies the loaders reach (`loguru`,
+`pydantic`, `tqdm`) rather than the fastapi/numpy/pillow closure the web API and jacket
+matcher need. `nix build .#y-offline` checks it in isolation, where an import failure is
+cheap to diagnose.
+
+Because that input is a git URL, **rhythm changes reach a deployment only once Y-Offline
+is pushed.** A local commit is invisible to the build.
 
 ## Privacy
 
