@@ -67,15 +67,13 @@ catalogue" would render identically to "never played". `observable-cuso4d-build`
 way it drops the band and Firefox pages, so an unconfigured machine publishes a site
 without that section rather than failing.
 
-**Y-Offline is packaged here, not consumed from its flake.** Its own flake exposes a
-`buildPythonApplication` built against `python313Packages`, which is an application: it
-carries no `pythonModule`, so `python3.withPackages` accepts it silently and
-`import y_offline` then fails at run time — the site builds with only the rhythm loaders
-dead. `nix/y-offline.nix` builds it as a library instead, from a `flake = false` source
-input, listing only the three runtime dependencies the loaders reach (`loguru`,
-`pydantic`, `tqdm`) rather than the fastapi/numpy/pillow closure the web API and jacket
-matcher need. `nix build .#y-offline` checks it in isolation, where an import failure is
-cheap to diagnose.
+**Depend on Y-Offline's library output, not its default.** `packages.default` is the
+`y`/`yweb` application, which is a program rather than an importable module: it carries no
+`pythonModule`, so `python3.withPackages` accepts it without complaint and
+`import y_offline` then fails when a loader runs. `packages.y-offline` is the library, and
+that is what `package.nix` takes. `inputs.nixpkgs.follows` is required for the same
+reason it is for CPI — a library built against a different nixpkgs is built for a
+different interpreter, and its modules land where this build's python cannot see them.
 
 Because that input is a git URL, **rhythm changes reach a deployment only once Y-Offline
 is pushed.** A local commit is invisible to the build.

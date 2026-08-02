@@ -9,19 +9,13 @@
       url = "github:CuSO4Deposit/CPI";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Source only, and packaged in `package.nix` rather than taken as a flake output.
-    # Y-Offline exposes `packages.default`, which is a `buildPythonApplication` built
-    # against `python313Packages` — an application, so it carries no `pythonModule` and
-    # is pinned to an interpreter that is not this nixpkgs' default. Passing it to
-    # `python3.withPackages` is accepted without complaint and then `import y_offline`
-    # fails at run time, which is the worst of the available failures: the build
-    # succeeds and only the rhythm loaders die.
-    #
-    # `flake = false` also keeps this repo from inheriting Y-Offline's own nixpkgs pin
-    # and its fastapi/numpy/pillow closure, none of which a loader touches.
+    # `follows` matters more here than it looks: `packages.y-offline` is a Python
+    # library, and a library built against another nixpkgs carries a different
+    # interpreter. `python3.withPackages` would then install modules where this build's
+    # python cannot see them — accepted silently, failing only when a loader runs.
     y-offline = {
       url = "git+ssh://git@codeberg.org/cocvu/Y-Offline.git";
-      flake = false;
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
@@ -37,10 +31,6 @@
         "aarch64-darwin"
         "x86_64-darwin"
       ];
-      # `inputs` is not a `perSystem` argument — flake-parts binds it at the top level
-      # only — so `y-offline` is reached through the outer `inputs@{ ... }` closure
-      # instead. It is `flake = false`, a bare source tree, so there is nothing
-      # per-system for `inputs'` to select anyway.
       perSystem =
         {
           config,
@@ -56,14 +46,9 @@
             # is packaged; the archive path is passed at run time.
             site = pkgs.callPackage ./package.nix {
               cpi = inputs'.cpi.packages.cpi;
-              y-offline = config.packages.y-offline;
-            };
-            # Y-Offline as an importable library, built here from its source rather
-            # than taken from its flake — see the input's comment. Exposed as its own
-            # output so `nix build .#y-offline` can check it in isolation, which is
-            # where an import failure is cheap to find rather than mid-site-build.
-            y-offline = pkgs.python3Packages.callPackage ./nix/y-offline.nix {
-              src = inputs.y-offline;
+              # The library output, not `default` — that one is the `y`/`yweb`
+              # application and is not importable.
+              y-offline = inputs'.y-offline.packages.y-offline;
             };
           };
 
