@@ -3,7 +3,10 @@
   stdenvNoCC,
   writeShellApplication,
   bash,
+  brotli,
   coreutils,
+  findutils,
+  gzip,
   nodejs,
   fetchNpmDeps,
   npmHooks,
@@ -69,6 +72,10 @@ writeShellApplication {
     # own to fall back on: without this the build dies with `spawn sh ENOENT`.
     bash
     coreutils
+    # Precompression, below.
+    brotli
+    findutils
+    gzip
   ];
 
   text = ''
@@ -145,6 +152,33 @@ writeShellApplication {
     npm run build
 
     [ -f dist/index.html ] || { echo "build produced no dist/index.html" >&2; exit 1; }
+
+    # Precompress every compressible asset so nginx can answer from a `.br`/`.gz`
+    # sibling (`brotli_static`/`gzip_static`) instead of compressing per request.
+    #
+    # Worth doing here rather than leaving it to nginx's on-the-fly gzip because the
+    # site is rebuilt once a day and then served unchanged: the cost is paid once per
+    # build instead of once per request, which buys the time for the slowest setting.
+    # `brotli -q 11` is far too slow to run per request but is fine once a day, and on
+    # this data it beats `gzip -9` by around 25-30% — the largest asset, the video
+    # loader's JSON, goes 1874K raw, 336K gzip, 243K brotli.
+    #
+    # The `.gz` copies are the fallback for clients that do not offer brotli. Both are
+    # written next to the original, which stays in place: a client sending no
+    # Accept-Encoding still gets the plain file.
+    #
+    # Only files above 1K, since below that framing overhead eats the gain, and only
+    # types that actually compress — the jackets are already-compressed WebP, where
+    # both encoders would spend time to produce something marginally larger.
+    echo "precompressing" >&2
+    find dist -type f \
+      \( -name '*.html' -o -name '*.js' -o -name '*.css' -o -name '*.json' \
+         -o -name '*.svg' -o -name '*.txt' -o -name '*.map' \) \
+      -size +1k -print0 |
+      while IFS= read -r -d ''' f; do
+        brotli -q 11 -f -o "$f.br" "$f"
+        gzip -9 -f -k -c "$f" > "$f.gz"
+      done
 
     mkdir -p "$(dirname "$outdir")"
     staging="$outdir.new.$$"
