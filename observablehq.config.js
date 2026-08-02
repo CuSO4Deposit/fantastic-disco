@@ -51,6 +51,18 @@ const sources = [
       ],
     },
   },
+  {
+    dir: "rhythm",
+    section: {
+      name: "Rhythm",
+      path: "/rhythm/",
+      pages: [
+        { name: "Overview", path: "/rhythm/" },
+        { name: "Charts", path: "/rhythm/charts" },
+        { name: "Practice", path: "/rhythm/practice" },
+      ],
+    },
+  },
 ];
 
 const root = new URL("./src/", import.meta.url).pathname;

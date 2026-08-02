@@ -6,7 +6,8 @@ time. The uploader denylist and the fandom keyword list are both exactly that, s
 without this the page would keep showing uploaders that were just excluded — the one
 failure these features must not have. So is `CPI_LOCAL_TZ`, where a stale cache is
 worse than a visible error: every daily total remains a plausible number, just cut on
-the wrong boundary.
+the wrong boundary. The rhythm games add two more of the same kind: which chart
+catalogue rates the plays, and which player's records are read.
 
 Comparing mtimes is not enough, because *deleting* a config file has to restore the
 full data just as reliably as adding one narrows it. So the effective configuration is
@@ -27,8 +28,26 @@ STAMP = SRC / ".observablehq" / "config.stamp"
 
 sys.path.insert(0, str(SRC / "lib"))
 sys.path.insert(0, str(SRC / "video" / "data"))
-import fandoms  # noqa: E402
+sys.path.insert(0, str(SRC / "rhythm" / "data"))
 from _shared import blocklist_fingerprint  # noqa: E402
+
+# Both of these live inside a source's own directory, and a source directory is
+# optional: `observable-cuso4d-build` deletes the ones whose environment is unset, so a
+# machine archiving only some sources still publishes a site. Importing either
+# unconditionally makes this script — which runs from `prebuild`, before Framework does
+# anything — fail outright on such a machine, taking the whole build with it.
+#
+# Guarded rather than reordered: there is nothing to fingerprint for a source that is
+# not being built, so an absent module is the correct answer and not a degraded one.
+try:
+    import fandoms
+except ImportError:
+    fandoms = None
+
+try:
+    import catalogues
+except ImportError:
+    catalogues = None
 
 # Environment that changes what a loader emits. Framework cannot see these any more
 # than it can see a config file: the loader script's mtime does not move when they do.
@@ -51,7 +70,9 @@ def fingerprint() -> str:
             "[denylist]",
             blocklist_fingerprint(),
             "[fandoms]",
-            fandoms.fingerprint(),
+            fandoms.fingerprint() if fandoms is not None else "",
+            "[rhythm]",
+            catalogues.fingerprint() if catalogues is not None else "",
             "[env]",
             *(f"{name}={os.environ.get(name, '')}" for name in TRACKED_ENV),
         ]

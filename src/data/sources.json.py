@@ -54,6 +54,19 @@ SOURCES = [
             {"name": "Library", "path": "/firefox/library"},
         ],
     },
+    {
+        "dir": "rhythm",
+        "name": "Rhythm",
+        "blurb": (
+            "Rhythm game scores recorded by hand in Y-Offline: where the standing "
+            "stands, where the ceiling is, and how much of the rise was borrowed."
+        ),
+        "pages": [
+            {"name": "Overview", "path": "/rhythm/"},
+            {"name": "Charts", "path": "/rhythm/charts"},
+            {"name": "Practice", "path": "/rhythm/practice"},
+        ],
+    },
 ]
 
 

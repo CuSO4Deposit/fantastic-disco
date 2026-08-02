@@ -13,6 +13,23 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 SERVICE_NAMES = {0: "YouTube", 5: "bilibili", 6: "niconico"}
 
 
+def die(message: str) -> None:
+    """Exit non-zero, naming the loader that failed.
+
+    Framework reports a failed loader as `loader exited with code 1` plus whatever went
+    to stderr, and nothing in its traceback says which loader that was. With nine of
+    them reading `CPI_LOCAL_TZ`, a bare "not set" leaves the reader to guess whether the
+    band, Firefox or rhythm pages asked for it — and therefore which of several
+    variables they actually need.
+
+    `sys.argv[0]` is the loader's own path, which Framework invokes directly. Public
+    rather than underscored because loaders and their helper modules call it too, for
+    failures that are theirs rather than a missing variable's.
+    """
+    who = Path(sys.argv[0]).name or "loader"
+    sys.exit(f"{who}: {message}")
+
+
 def local_tz() -> ZoneInfo:
     """Which local midnight splits a day, or exit.
 
@@ -32,14 +49,15 @@ def local_tz() -> ZoneInfo:
     """
     value = os.environ.get("CPI_LOCAL_TZ")
     if not value:
-        sys.exit(
+        die(
             "CPI_LOCAL_TZ is not set; set it to the IANA zone the data was "
-            "recorded in, e.g. CPI_LOCAL_TZ=Europe/Paris"
+            "recorded in, e.g. CPI_LOCAL_TZ=Asia/Tokyo. Every source except video "
+            "needs it — see the environment table in README.md"
         )
     try:
         return ZoneInfo(value)
     except ZoneInfoNotFoundError:
-        sys.exit(f"CPI_LOCAL_TZ={value!r} is not a known IANA timezone")
+        die(f"CPI_LOCAL_TZ={value!r} is not a known IANA timezone")
 
 
 # Sits next to the loaders, gitignored. See blocked.example.txt.
@@ -55,7 +73,7 @@ def exports(var: str = "CPI_PIPEPIPE_EXPORTS", what: str = "PipePipe exports") -
     """
     value = os.environ.get(var)
     if not value:
-        sys.exit(f"{var} is not set; point it at archived {what}")
+        die(f"{var} is not set; point it at archived {what}")
     return value
 
 
@@ -86,3 +104,45 @@ def blocklist_fingerprint() -> str:
     data as reliably as adding one hides part of it.
     """
     return "\n".join(sorted(blocked_uploaders()))
+
+
+def env_path(var: str, what: str) -> Path:
+    """A path from the environment that must exist, or exit.
+
+    Separate from `exports` because these are single files rather than a glob, and
+    because a missing chart catalogue has a distinct failure mode: Y-Offline reads a
+    chart's rating and note count from it, and every rating band, accuracy and
+    potential figure is derived from those. Pointing at a catalogue that is not there
+    must stop the build rather than yield a page of empty bands.
+    """
+    value = os.environ.get(var)
+    if not value:
+        die(f"{var} is not set; point it at {what}")
+    path = Path(value).expanduser()
+    if not path.exists():
+        die(f"{var}={value!r} does not exist; expected {what}")
+    return path
+
+
+def rhythm_db() -> Path:
+    """The Y-Offline score database, or exit.
+
+    Its own variable rather than a path under the exports glob: Y-Offline writes this
+    database live from the `y` CLI, so it is not an archived export and does not
+    accumulate one file per snapshot the way the band and Firefox archives do.
+    """
+    return env_path("YOFFLINE_DB", "the Y-Offline score database (y_offline.db)")
+
+
+def rhythm_user() -> str:
+    """Whose records to read.
+
+    Every table there is keyed `(time, user)` and the reference database holds a second
+    user with 40 rows, so a loader that ignored this would pool two players' records
+    into one potential curve. No default: guessing wrong produces a complete-looking
+    dashboard for the wrong person.
+    """
+    value = os.environ.get("YOFFLINE_USER")
+    if not value:
+        die("YOFFLINE_USER is not set; set it to the player whose records to read")
+    return value

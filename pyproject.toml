@@ -3,10 +3,11 @@ name = "observable-cuso4d"
 version = "0.1.0"
 description = "Dashboards over CPI"
 requires-python = ">=3.12"
-dependencies = ["cpi"]
+dependencies = ["cpi", "y-offline"]
 
 [tool.uv.sources]
 cpi = { path = "../CPI", editable = true }
+y-offline = { path = "../Y-Offline", editable = true }
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]

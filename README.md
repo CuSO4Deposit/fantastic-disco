@@ -12,24 +12,57 @@ node toolchain and its own release rhythm.
 Data loaders read archived exports through CPI, so point them at the archive:
 
 ```console
-$ export CPI_PIPEPIPE_EXPORTS='~/archives/pipepipe/PipePipeData-*'
-$ export CPI_GADGETBRIDGE_EXPORTS='~/archives/gadgetbridge/*'      # optional
-$ export CPI_FIREFOX_EXPORTS='~/archives/*/firefox/places-*.xz'    # optional
-$ export CPI_LOCAL_TZ=Europe/Paris   # required by the two above
+$ export CPI_PIPEPIPE_EXPORTS='~/archives/redmi50/app/*.NewPipeEnhanced/PipePipeData-*.zip'
+$ export CPI_LOCAL_TZ=Europe/Paris
 $ npm install
 $ npm run dev     # preview on 127.0.0.1:3000
 $ npm run build   # static site in dist/
 ```
 
-`nix develop` (or `direnv allow`) provides node, uv and the venv. The loaders exit
-non-zero when their export variable is unset rather than emitting an empty dataset
-that would render as "nothing watched" or "never wore the band".
+That builds the video pages alone. `nix develop` (or `direnv allow`) provides node, uv
+and the venv.
 
-The band and Firefox sources are optional: `observable-cuso4d-build` deletes their
-page directories when the matching variable is unset, which drops the pages and every
-link to them together. `CPI_LOCAL_TZ` has no default on purpose — it decides which
-local midnight splits a day, and a wrong boundary leaves every daily total looking
-like a perfectly plausible number.
+## Environment
+
+Every variable the site reads, in one place. Only the first is needed to build
+anything; each source below it is optional, and a source whose variable is unset is
+dropped from the site rather than published empty.
+
+| Variable | Needed for | Notes |
+| --- | --- | --- |
+| `CPI_PIPEPIPE_EXPORTS` | **required** | Glob of PipePipe export zips. The one source the build refuses to go without. |
+| `CPI_LOCAL_TZ` | required by every source except video | IANA zone the data was recorded in, e.g. `Asia/Tokyo`. No default on purpose. |
+| `CPI_GADGETBRIDGE_EXPORTS` | Band pages | Glob of Gadgetbridge backup zips. |
+| `CPI_FIREFOX_EXPORTS` | Firefox pages | Glob of archived `places-<host>-<stamp>.sqlite.xz`. Must span machines — see below. |
+| `YOFFLINE_DB` | Rhythm pages | Path to `y_offline.db`. A live database, not an archived export. |
+| `YOFFLINE_USER` | Rhythm pages | Whose records to read. Every table is keyed `(time, user)`. |
+| `ARCSONG_DB` | Arcaea | `arcsong.db` from ArcaeaSongDatabase. |
+| `PJSK_MUSICS_JSON` | Project SEKAI | `musics.json` from sekai-master-db-diff. |
+| `PJSK_DIFFICULTIES_JSON` | Project SEKAI | `musicDifficulties.json`, alongside the above. |
+| `CYTUS2_CHARTS_JSON` | Cytus II | A hand-maintained `charts.json`. |
+
+Three things worth knowing beyond the table.
+
+**Loaders exit non-zero rather than emitting nothing.** A variable pointing at an empty
+glob stops the build. The alternative is worse than a failure: an empty dataset renders
+as a plausible "nothing watched", "never wore the band" or "never played".
+
+**`CPI_LOCAL_TZ` has no default, and that is deliberate.** It decides which local
+midnight splits a day, and a wrong boundary does not look wrong — every daily total
+stays a perfectly plausible number, just cut in the wrong place. The build refuses when
+a source needs it and it is unset rather than falling back to the machine's zone, which
+on the server is UTC.
+
+**`CPI_FIREFOX_EXPORTS` must match every machine's snapshots.** Firefox is the one
+source that genuinely runs on several, and page ids are profile-local, so identity is
+`(machine, URL)` and the host is read out of each filename. A glob naming one device
+publishes that laptop's browsing as though it were the whole record — a complete-looking
+site quietly missing half its history. `'/data/*/firefox/places-*.sqlite.xz'` rather
+than `/data/lexikos/...`.
+
+At least one rhythm catalogue must be configured if `src/rhythm/` is present; the
+loaders refuse otherwise, since Y-Offline cannot rate a play without one and "no
+catalogue" would render identically to "never played".
 
 ## Privacy
 
@@ -48,6 +81,8 @@ since there is no server.
     src/video/data/*.json.py  loaders; import cuso4d.* and print JSON to stdout
     src/band/                 the same shape over Gadgetbridge
     src/firefox/              and over archived places.sqlite snapshots
+    src/rhythm/               and over Y-Offline, which is a live database rather
+                              than an archive — see Environment
 
 One directory per source, so each keeps its pages and loaders together and a second
 source can be added without disturbing this one. Pages nest as sections, hence
