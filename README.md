@@ -112,6 +112,20 @@ output is fresh by comparing mtimes with the loader script alone and never sees 
 denylist — without it, the page would keep showing the uploaders you just excluded.
 Restarting the dev server picks up changes; editing the file while it runs does not.
 
+**That step invalidates per source.** `scripts/refresh.py` keeps one fingerprint per
+source under `src/.observablehq/stamps/` and only re-runs the loaders of a source whose
+own configuration moved. This matters more than it sounds: a cached loader output is not
+always reproducible, since the archive behind it may be unmounted or already rotated
+away — the band buffers about a week and then overwrites. Dropping every source's cache
+because one source was configured can therefore destroy data no later build can recover.
+An input genuinely shared between sources still invalidates all of its readers, which is
+what `CPI_LOCAL_TZ` does to the band, Firefox and rhythm pages together. A first run with
+no stamp records the configuration and keeps whatever cache is there, rather than
+discarding a cache that predates the mechanism.
+
+`python scripts/test_refresh.py` covers that isolation directly, including the case
+where a rhythm-only change must leave the band alone.
+
 Adding a chart is usually a JS block in the Markdown. Adding a *field* means
 editing the matching loader, since only what a loader emits reaches the browser.
 
