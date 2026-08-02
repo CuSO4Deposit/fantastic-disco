@@ -13,8 +13,10 @@
     # library, and a library built against another nixpkgs carries a different
     # interpreter. `python3.withPackages` would then install modules where this build's
     # python cannot see them — accepted silently, failing only when a loader runs.
+    # HTTPS rather than SSH: the builder runs unattended from a systemd unit, which has
+    # no agent and no key of its own, and a public repository needs neither to fetch.
     y-offline = {
-      url = "git+ssh://git@codeberg.org/cocvu/Y-Offline.git";
+      url = "git+https://codeberg.org/cocvu/Y-Offline.git";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

@@ -337,11 +337,11 @@
         "rev": "ecb2cf4040ba84822cc2f775df0d8507490bac43",
         "revCount": 101,
         "type": "git",
-        "url": "ssh://git@codeberg.org/cocvu/Y-Offline.git"
+        "url": "https://codeberg.org/cocvu/Y-Offline.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@codeberg.org/cocvu/Y-Offline.git"
+        "url": "https://codeberg.org/cocvu/Y-Offline.git"
       }
     }
   },
