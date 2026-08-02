@@ -90,11 +90,14 @@ writeShellApplication {
     #
     #   CPI_GADGETBRIDGE_EXPORTS  where the band backups are. Optional — unset simply
     #                             leaves the band pages out.
+    #   CPI_FIREFOX_EXPORTS       where the places.sqlite snapshots are. Optional in
+    #                             the same way, and a glob rather than a path: the
+    #                             archive holds one file per machine per export.
     #   CPI_LOCAL_TZ              the IANA zone the data was recorded in. Required
-    #                             once band data is present, and deliberately without
-    #                             a default: it decides which local midnight splits a
-    #                             day, and a wrong boundary leaves every daily total
-    #                             looking like a perfectly plausible number.
+    #                             once band or Firefox data is present, and deliberately
+    #                             without a default: it decides which local midnight
+    #                             splits a day, and a wrong boundary leaves every daily
+    #                             total looking like a perfectly plausible number.
     #
     # Publishing is an atomic rename: nginx must never serve a half-written tree, and
     # a failed build must leave the previous site up rather than replacing it with
@@ -104,10 +107,14 @@ writeShellApplication {
     outdir=''${2:?$usage}
     configdir=''${3:-}
 
-    if [ -n "''${CPI_GADGETBRIDGE_EXPORTS:-}" ] && [ -z "''${CPI_LOCAL_TZ:-}" ]; then
-      echo "CPI_GADGETBRIDGE_EXPORTS is set but CPI_LOCAL_TZ is not; refusing to" >&2
-      echo "build band pages on an assumed timezone" >&2
-      exit 1
+    if [ -z "''${CPI_LOCAL_TZ:-}" ]; then
+      for var in CPI_GADGETBRIDGE_EXPORTS CPI_FIREFOX_EXPORTS; do
+        if [ -n "''${!var:-}" ]; then
+          echo "$var is set but CPI_LOCAL_TZ is not; refusing to build" >&2
+          echo "its pages on an assumed timezone" >&2
+          exit 1
+        fi
+      done
     fi
 
     # Refuse to build from nothing: an empty glob would otherwise publish a site
@@ -145,6 +152,10 @@ writeShellApplication {
     if [ -z "''${CPI_GADGETBRIDGE_EXPORTS:-}" ]; then
       echo "CPI_GADGETBRIDGE_EXPORTS unset; building without the band pages" >&2
       rm -rf src/band
+    fi
+    if [ -z "''${CPI_FIREFOX_EXPORTS:-}" ]; then
+      echo "CPI_FIREFOX_EXPORTS unset; building without the Firefox pages" >&2
+      rm -rf src/firefox
     fi
 
     export CPI_PIPEPIPE_EXPORTS="$exports"

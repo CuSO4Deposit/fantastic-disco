@@ -13,14 +13,23 @@ Data loaders read archived exports through CPI, so point them at the archive:
 
 ```console
 $ export CPI_PIPEPIPE_EXPORTS='~/archives/pipepipe/PipePipeData-*'
+$ export CPI_GADGETBRIDGE_EXPORTS='~/archives/gadgetbridge/*'      # optional
+$ export CPI_FIREFOX_EXPORTS='~/archives/*/firefox/places-*.xz'    # optional
+$ export CPI_LOCAL_TZ=Europe/Paris   # required by the two above
 $ npm install
 $ npm run dev     # preview on 127.0.0.1:3000
 $ npm run build   # static site in dist/
 ```
 
 `nix develop` (or `direnv allow`) provides node, uv and the venv. The loaders exit
-non-zero when `CPI_PIPEPIPE_EXPORTS` is unset rather than emitting an empty dataset
-that would render as "nothing watched".
+non-zero when their export variable is unset rather than emitting an empty dataset
+that would render as "nothing watched" or "never wore the band".
+
+The band and Firefox sources are optional: `observable-cuso4d-build` deletes their
+page directories when the matching variable is unset, which drops the pages and every
+link to them together. `CPI_LOCAL_TZ` has no default on purpose — it decides which
+local midnight splits a day, and a wrong boundary leaves every daily total looking
+like a perfectly plausible number.
 
 ## Privacy
 
@@ -37,6 +46,8 @@ since there is no server.
     src/video/fandoms.md      the same watching, split by what I follow
     src/video/raw.md          every row, searchable, plus raw JSON downloads
     src/video/data/*.json.py  loaders; import cuso4d.* and print JSON to stdout
+    src/band/                 the same shape over Gadgetbridge
+    src/firefox/              and over archived places.sqlite snapshots
 
 One directory per source, so each keeps its pages and loaders together and a second
 source can be added without disturbing this one. Pages nest as sections, hence
@@ -83,3 +94,23 @@ page is built around:
   Those become meaningful once several exports have accumulated.
 - Live streams have no duration, so they are excluded from length and total-time
   charts rather than counted as zero.
+
+Firefox is the opposite in one way and worse in another. Visit rows are immutable, so
+one snapshot holds a real timeline and per-day charts are sound — but Firefox deletes
+its own rows, and on two different schedules:
+
+- History expires when the database outgrows its size limit, on no schedule the file
+  records. The left end of every series is where expiration last cut, not where the
+  browsing began.
+- Engagement rows are expired on age, much sooner than the visits they describe: 134
+  days against 288 on one machine here, 230 against 427 on the other. View time is
+  therefore absent, not zero, before a date that differs per machine — the pages plot
+  it only inside each machine's own window and say so.
+- Reading time is foreground, non-idle time only, so it is a floor on attention rather
+  than how long a tab was open.
+- Bookmarks are present state with no tombstones, and their `dateAdded` is usually the
+  time of an import rather than when anything was found.
+- Downloads are reconstructed from per-page annotations, so re-downloading a URL
+  overwrites the earlier record; the count is a floor.
+- Nothing is deduplicated across machines. Page ids and guids are both profile-local,
+  so identity is `(machine, URL)` and the same page on two profiles is two records.

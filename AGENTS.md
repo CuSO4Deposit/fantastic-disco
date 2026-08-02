@@ -75,6 +75,13 @@ draws nothing — axes, title and legend all render, so the page looks finished.
 stack two measures held in separate columns, reshape to long form (one row per
 category) rather than layering two marks with `y1`/`y2`.
 
+**A bar's category is its identity.** Two rows sharing a `y` value land in one band and
+draw over each other, so the chart shows one and silently drops the other — no warning,
+no visual tell. Ten of the twenty largest bookmark folders exist on both machines under
+the same name, and five Firefox page titles differed only past the 22nd character of a
+base64 path. Facet by whatever distinguishes them, or build a label that is unique by
+construction; truncating a long label *creates* this bug where none existed.
+
 **Never read clock fields off a `Date` in a page.** `getHours`, `getDay` and
 `toISOString` all convert to whatever timezone the *browser* is in, which is not where
 the data was recorded. On a UTC machine an 01:58+08:00 bedtime displayed as 18:06, an
@@ -156,3 +163,41 @@ because the band buffers about a week and drops what was never synced.
 - No workouts, SpO2, PAI or resting heart rate: those tables are empty. Resting
   heart rate has to be derived from sleeping minutes.
 - The 5-minute stress series claims 0-100 but has a few values above 250.
+
+### Firefox
+
+Rows are immutable like Gadgetbridge's, so per-day charts are sound — but Firefox
+deletes its own rows on two unrelated schedules, and both windows differ per machine.
+Emit them from the loader and plot each series only inside its own; the reference
+archive has 288 days of history against 134 of engagement on one machine, 427 against
+230 on the other.
+
+- **Absent is not zero.** A day before a machine's engagement window has no row at all.
+  Emit `null`, not `0`, or a chart draws months of floor that never happened.
+- **`visit_count` is not the number of visits.** Firefox excludes `RELOAD` and
+  `DOWNLOAD` — 7.4% of rows here. Either number is defensible; say which one a figure
+  is.
+- **Nothing deduplicates across machines.** Page ids and guids are both profile-local
+  (11093 shared ids, exactly one meaning the same URL), so identity is `(machine, URL)`.
+  Pooling two profiles' bookmarks or view time reports a total the archive cannot
+  support.
+- **A missing referrer is not "typed directly".** It means no referrer, an expired
+  referring visit, or a page since deleted — 29% of visits here, indistinguishably. The
+  `TYPED` transition is the field that actually means typed.
+- **`VisitSource.SEARCHED` marks the search page, not what came from it.** Every one of
+  the 3647 lands on a search engine itself. Arrivals *from* a search have to come from
+  referrers. The same flag also lands on a site's own in-page search, so detecting
+  engines by it needs a share threshold — Wikipedia carries 2 such visits against
+  thousands and would otherwise be treated as a search engine.
+- **View time is foreground, non-idle time.** Not how long a tab was open, and upstream
+  admits losing ~2s per idle transition. A floor on attention. 37 rows here exceed their
+  own wall-clock span, so do not assume that bound.
+- **Bookmark `dateAdded` is usually an import.** 1905 of 1911 share a timestamp to the
+  second with another, 609 in one group. It records when the library was moved, not when
+  anything was found.
+- **One engagement row is one page view, and a long-lived tab makes several** — Firefox
+  starts a fresh row after an hour without updates.
+- `document_type` is `GENERIC` for every row; `MEDIA` is unexercised, not absent by
+  finding.
+- **`Download.destination` names the account.** Keep the basename, drop the path, before
+  it reaches a page.

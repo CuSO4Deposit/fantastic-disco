@@ -31,8 +31,7 @@ display(
 
 ## Reading these numbers
 
-The two sources store their data in opposite ways, and it changes what each can
-answer.
+The sources store their data in different ways, and it changes what each can answer.
 
 PipePipe keeps one history row per video and overwrites its timestamp on every
 play, so an export knows only when each video was *last* watched. Anything derived
@@ -43,3 +42,10 @@ Gadgetbridge appends instead: one immutable row per minute, so a single backup
 already holds years of history and a per-day chart is sound. What it cannot fill in
 is time the band never synced — it buffers about a week, then overwrites, so those
 stretches are missing rather than empty and no later backup recovers them.
+
+Firefox also appends, but deletes as it goes. History is dropped when the database
+outgrows its size limit, and the per-page reading times go much sooner still — so the
+early end of any browsing chart is where expiration last cut rather than where the
+browsing began, and view time simply does not exist before a date that differs per
+machine. It is also the one source spanning several machines, where a page's identity
+is the machine plus the URL and nothing is pooled across profiles.

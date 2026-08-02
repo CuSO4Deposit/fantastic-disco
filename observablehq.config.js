@@ -39,6 +39,18 @@ const sources = [
       ],
     },
   },
+  {
+    dir: "firefox",
+    section: {
+      name: "Firefox",
+      path: "/firefox/",
+      pages: [
+        { name: "Overview", path: "/firefox/" },
+        { name: "Attention", path: "/firefox/attention" },
+        { name: "Library", path: "/firefox/library" },
+      ],
+    },
+  },
 ];
 
 const root = new URL("./src/", import.meta.url).pathname;

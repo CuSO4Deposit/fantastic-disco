@@ -41,6 +41,19 @@ SOURCES = [
             {"name": "Device", "path": "/band/device"},
         ],
     },
+    {
+        "dir": "firefox",
+        "name": "Firefox",
+        "blurb": (
+            "Browsing history, reading time, bookmarks and downloads, from archived "
+            "copies of places.sqlite."
+        ),
+        "pages": [
+            {"name": "Overview", "path": "/firefox/"},
+            {"name": "Attention", "path": "/firefox/attention"},
+            {"name": "Library", "path": "/firefox/library"},
+        ],
+    },
 ]
 
 
