@@ -98,6 +98,12 @@ for (const g of played) {
 }
 ```
 
+## Upper line minus lower line
+
+The two lines above move almost together, which is the honest visual answer to "was
+this earned": mostly not. Their *difference* is the part that was — the accuracy
+component, with difficulty divided out.
+
 ```js
 // The execution half on its own axis. Plotted separately because it moves by tenths
 // while the nominal average moves by whole points — on one axis it reads as flat.
@@ -106,7 +112,7 @@ for (const g of played) {
   display(
     Plot.plot({
       title: `${g.name} — the difficulty-neutral index`,
-      subtitle: `mean ${g.metric_label.toLowerCase()} minus mean chart rating. Flat means the rise above was entirely difficulty.`,
+      subtitle: `mean ${g.metric_label.toLowerCase()} minus mean chart rating. Falls here are almost always a harder chart entering, not worse play — see below.`,
       width,
       height: 240,
       x: { label: null, type: "utc" },
@@ -115,6 +121,153 @@ for (const g of played) {
         Plot.lineY(rows, { x: "at", y: "bonus", stroke: "var(--theme-foreground-focus)", strokeWidth: 2, curve: "step-after" }),
         Plot.tip(rows, Plot.pointerX({ x: "at", y: "bonus", format: { y: (d) => d.toFixed(3) } })),
       ],
+    })
+  );
+}
+```
+
+```js
+// Counted from the series actually drawn above rather than written into the prose, so
+// these cannot drift as plays are added.
+const falls = played.map((g) => {
+  const rows = asRows(g);
+  let total = 0;
+  let harder = 0;
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].bonus < rows[i - 1].bonus - 1e-12) {
+      total++;
+      if (rows[i].mean_rating > rows[i - 1].mean_rating + 1e-12) harder++;
+    }
+  }
+  return { game: g.name, total, harder };
+});
+const fallTotal = d3.sum(falls, (f) => f.total);
+const fallHarder = d3.sum(falls, (f) => f.harder);
+```
+
+```js
+display(
+  htl.html`<p>A dip in that line is the trap. Unlike the nominal average it <i>can</i>
+    fall — ${falls.map((f) => `${f.total} times in ${f.game}`).join(" and ")}. But
+    <b>${fallHarder} of those ${fallTotal}</b> happened at a step where the pool got
+    harder${fallHarder === fallTotal ? ", with no exceptions" : ""}. A chart entering the
+    pool for the first time is usually one just barely cleared, so it sits close to its
+    own rating and pulls the mean down. That is the cost of reaching higher, not a
+    regression.</p>`
+);
+```
+
+So the steps have to be separated. At unchanged difficulty the only thing that can move
+the pool is beating a score already in it — that subtotal is execution with nothing else
+in it.
+
+```js
+const splitRows = played.flatMap((g) => [
+  { game: g.name, kind: "beating your own scores", value: g.bonus_split.execution_change, steps: g.bonus_split.execution_steps },
+  { game: g.name, kind: "harder charts entering", value: g.bonus_split.difficulty_change, steps: g.bonus_split.difficulty_steps },
+]);
+```
+
+```js
+Plot.plot({
+  title: "Why the difficulty-neutral index moved",
+  subtitle: "the same series split by whether mean difficulty held at that step; the two sum to the line's end-to-end change",
+  width,
+  height: 220,
+  marginLeft: 190,
+  x: { label: "Change in the accuracy component →", grid: true },
+  y: { label: null },
+  fy: { label: null },
+  color: { legend: true, domain: ["beating your own scores", "harder charts entering"], range: ["var(--theme-foreground-focus)", "var(--theme-foreground-muted)"] },
+  marks: [
+    Plot.barX(splitRows, { x: "value", y: "kind", fy: "game", fill: "kind", tip: true, channels: { steps: "steps" } }),
+    Plot.ruleX([0]),
+  ],
+})
+```
+
+```js
+display(
+  htl.html`<div class="grid grid-cols-2">
+    ${played.map((g) => {
+      const s = g.bonus_split;
+      const improved = s.execution_change > 0;
+      return htl.html`<div class="card">
+        <h2>${g.name}</h2>
+        <span class="big">${s.execution_change >= 0 ? "+" : ""}${s.execution_change.toFixed(3)}</span>
+        <p>${improved ? "gained" : "lost"} at unchanged difficulty, across
+        ${s.execution_steps.toLocaleString()} such steps — this is the part that is
+        actually playing better. Attempting harder charts moved it
+        <b>${s.difficulty_change >= 0 ? "+" : ""}${s.difficulty_change.toFixed(3)}</b>
+        over ${s.difficulty_steps.toLocaleString()} steps, leaving the line's visible
+        net change at
+        <b>${s.net_change >= 0 ? "+" : ""}${s.net_change.toFixed(3)}</b>.</p>
+      </div>`;
+    })}
+  </div>`
+);
+```
+
+## Did I actually get better?
+
+Everything above is derived from the pool, and a pool holds personal bests — those never
+regress. So none of it can answer the question directly: a month of bad play leaves the
+pool untouched and every curve above flat.
+
+This one averages *plays* instead, each measured against the median accuracy of that same
+chart. So a month spent on easy charts does not read as a good month, and a bad month
+shows as a dip. It is the only series here that can genuinely fall.
+
+```js
+const execution = played.flatMap((g) =>
+  g.execution.map((m) => ({
+    ...m,
+    game: g.name,
+    month: new Date(`${m.month}-01T00:00:00Z`),
+  }))
+);
+```
+
+```js
+Plot.plot({
+  title: "Play quality by month, against each chart's own median",
+  subtitle: "above zero is playing a chart better than usual for you; point size is plays that month. Months with too few plays are left out.",
+  width,
+  height: 300,
+  x: { label: null, type: "utc" },
+  y: { label: "Accuracy vs chart median", grid: true, percent: true },
+  color: { legend: true },
+  marks: [
+    Plot.ruleY([0], { stroke: "var(--theme-foreground-muted)" }),
+    Plot.lineY(execution, { x: "month", y: "mean_delta", stroke: "game", strokeWidth: 1.5 }),
+    Plot.dot(execution, { x: "month", y: "mean_delta", fill: "game", r: (d) => Math.sqrt(d.plays) / 2, tip: true, channels: { plays: "plays", month: "month" } }),
+  ],
+})
+```
+
+```js
+display(
+  htl.html`<p>${played
+    .map((g) => {
+      const first = g.execution[0];
+      const last = g.execution[g.execution.length - 1];
+      const delta = (last.mean_delta - first.mean_delta) * 100;
+      return `${g.name} went from ${(100 * first.mean_delta).toFixed(3)}pp in
+        ${first.month} to ${(100 * last.mean_delta).toFixed(3)}pp in ${last.month},
+        ${delta >= 0 ? "up" : "down"} ${Math.abs(delta).toFixed(3)} percentage points`;
+    })
+    .join("; ")}. These are fractions of a percentage point, which is what accuracy
+    changes look like at this level — the range across all months is under a single
+    percent. Read the direction and the sign, not the magnitude.</p>`
+);
+```
+
+A caveat on how this is centred: each chart's median is taken over the whole archive, so
+an early play is compared against a median that later improvement helped raise. That
+would manufacture a rising trend on its own, so it was checked — shuffling play times
+within each chart, which destroys any real change while leaving every median identical,
+flattens the series to noise. The rise survives the control.
+
     })
   );
 }

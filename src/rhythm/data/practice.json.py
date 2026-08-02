@@ -73,6 +73,15 @@ def main() -> None:
             # series which is otherwise 97% of this file.
             "deflated": as_json(manager.deflated_trend(user, only_changes=True)),
             "deflated_summary": _summarise(deflated),
+            # Why the difficulty-neutral index moved. Needed because a fall in it looks
+            # like playing worse and usually is not: on this archive every single fall
+            # coincided with the pool getting harder, so the raw series cannot be read
+            # as regression without this split beside it.
+            "bonus_split": as_json(manager.bonus_split(user)),
+            # The one series here that can fall. Everything derived from the pool holds
+            # personal bests, which never regress, so a pool-based index stays silent
+            # about a bad month; this averages plays instead.
+            "execution": as_json(manager.execution_trend(user, tz=tz)),
             "discovery": as_json(manager.discovery(user, tz=tz)),
             "positions": as_json(manager.session_position(user)),
             "basket": as_json(basket),
