@@ -304,19 +304,68 @@ const judgements = played.flatMap((g) =>
 );
 const topLevel = judgements.filter((j) => !j.is_subdivision);
 const subdivisions = judgements.filter((j) => j.is_subdivision);
+// Every top-level judgement except each game's best one. That bar carries 97-99% of the
+// notes, so on a shared axis it pins everything else to nothing — and it is the least
+// interesting of them, since where the losses come from is the question.
+const bestPerGame = new Set(
+  played.map((g) => {
+    const top = d3.greatest(g.judgements.filter((j) => !j.is_subdivision), (j) => j.share);
+    return `${g.name} · ${top.name}`;
+  })
+);
+const rare = topLevel.filter((j) => !bestPerGame.has(j.label));
+```
+
+```js
+// Notes rather than judgements: `basis` on any top-level judgement is the note total,
+// which is the same number for all of them within a game. Taken from the first rather
+// than summed, since summing would count every note once per judgement.
+const notesPerGame = played.map((g) => ({
+  game: g.name,
+  notes: g.judgements.find((j) => !j.is_subdivision)?.basis ?? 0,
+  plays: g.activity.plays,
+}));
+const notesTotal = d3.sum(notesPerGame, (n) => n.notes);
+```
+
+<div class="grid grid-cols-3">
+  <div class="card">
+    <h2>Notes ever hit</h2>
+    <span class="big">${notesTotal.toLocaleString()}</span>
+  </div>
+  <div class="card">
+    <h2>Notes per play</h2>
+    <span class="big">${Math.round(notesTotal / d3.sum(notesPerGame, (n) => n.plays)).toLocaleString()}</span>
+  </div>
+  <div class="card">
+    <h2>Notes missed outright</h2>
+    <span class="big">${d3.sum(judgements.filter((j) => !j.is_subdivision && (j.name === "lost" || j.name === "miss")), (j) => j.count).toLocaleString()}</span>
+  </div>
+</div>
+
+```js
+display(
+  htl.html`<p>${notesPerGame
+    .map((n) => `${n.game}: ${n.notes.toLocaleString()} notes across ${n.plays.toLocaleString()} plays`)
+    .join("; ")}. Every note is counted once per play, so a chart replayed ten times
+    contributes its length ten times — this is how many notes were <i>hit</i>, not how
+    many distinct notes exist in the charts played.</p>`
+);
 ```
 
 ```js
 Plot.plot({
   title: "How every note was hit",
-  subtitle: "share of all notes played, within each game. These partition the notes, so each game's bars sum to 100%.",
+  subtitle: "share of all notes played, within each game. These partition the notes, so each game's shares sum to 100%.",
   width,
   height: 300,
   marginLeft: 170,
-  // Log, because the interesting judgements are the rare ones: on a linear axis
-  // `perfect` at 99.5% flattens `bad` at 0.0055% into nothing. Zero cannot appear on a
-  // log axis, but no top-level judgement here is zero.
-  x: { label: "Share of notes (log scale)", grid: true, type: "log", percent: true, domain: [d3.min(topLevel, (j) => j.share) * 100 / 2, 100] },
+  // Linear, with the rare judgements carried by a label rather than by bar length.
+  // A log axis is what this wants — `perfect` at 99.5% against `bad` at 0.0055% is
+  // four orders of magnitude — but a bar spans from an implicit x1 of 0, and 0 does
+  // not exist on a log scale, so every bar silently vanishes. Dots would survive it;
+  // bars are the better read here, so the axis gives way instead.
+  x: { label: "Share of notes", grid: true, percent: true, domain: [0, 100] },
   y: { label: null },
   marks: [
     Plot.barX(topLevel, {
@@ -327,8 +376,83 @@ Plot.plot({
       tip: true,
       channels: { count: "count", of: "basis_name", outOf: "basis" },
     }),
+    // The share as text, because the small ones are invisible as bars at this scale
+    // and they are the interesting ones — where the losses actually come from.
+    Plot.text(topLevel, {
+      x: "share",
+      y: "label",
+      text: (j) => (j.share >= 0.01 ? `${(100 * j.share).toFixed(1)}%` : `${(100 * j.share).toFixed(3)}%`),
+      dx: 6,
+      textAnchor: "start",
+      fill: "var(--theme-foreground-muted)",
+    }),
+    Plot.ruleX([0]),
   ],
 })
+```
+
+```js
+// The rare judgements on their own log axis, where three orders of magnitude are
+// legible. Dots rather than bars: a bar spans from an implicit x1 of 0 and a log scale
+// has no zero, so bars vanish silently — which is exactly what went wrong when this
+// chart was first written.
+//
+// A judgement that never happened would break the axis too, so those are dropped and
+// named below instead. Today none are zero, but an all-clean stretch would make `lost`
+// or `bad` zero and take the whole chart down with it.
+const rarePositive = rare.filter((j) => j.count > 0);
+const rareZero = rare.filter((j) => j.count === 0);
+```
+
+```js
+if (rarePositive.length > 0) {
+  display(
+    Plot.plot({
+      title: "The same shares, log scale",
+      subtitle: `where the losses come from. Each game's best judgement is left out — at 97-99% it pins everything else to the axis.`,
+      width,
+      height: 240,
+      marginLeft: 170,
+      x: {
+        label: "Share of notes (log scale)",
+        grid: true,
+        type: "log",
+        percent: true,
+        domain: [
+          d3.min(rarePositive, (j) => j.share) * 100 / 2,
+          d3.max(rarePositive, (j) => j.share) * 100 * 2,
+        ],
+      },
+      y: { label: null },
+      marks: [
+        Plot.ruleY(rarePositive, {
+          y: "label",
+          x1: () => (d3.min(rarePositive, (r) => r.share) * 100) / 2,
+          x2: (j) => j.share * 100,
+          stroke: "var(--theme-foreground-faint)",
+        }),
+        Plot.dot(rarePositive, {
+          x: "share",
+          y: "label",
+          fill: "game",
+          r: 5,
+          sort: { y: "x", reverse: true },
+          tip: true,
+          channels: { count: "count", of: "basis_name", outOf: "basis" },
+        }),
+      ],
+    })
+  );
+}
+```
+
+```js
+if (rareZero.length > 0) {
+  display(
+    htl.html`<p>Never recorded at all, so absent from the log chart above:
+      ${rareZero.map((j) => `${j.game} ${j.name}`).join(", ")}.</p>`
+  );
+}
 ```
 
 ```js
@@ -362,12 +486,7 @@ if (subdivisions.length > 0) {
 
 ```js
 display(
-  htl.html`<p>${played
-    .map((g) => {
-      const notes = g.judgements.find((j) => !j.is_subdivision)?.basis ?? 0;
-      return `${g.name}: ${notes.toLocaleString()} notes played`;
-    })
-    .join("; ")}. ${subdivisions
+  htl.html`<p>${subdivisions
     .map(
       (j) =>
         `${j.count.toLocaleString()} of ${j.basis.toLocaleString()} ${j.basis_name} notes in ${j.game} were ${j.name} (${(100 * j.share).toFixed(1)}%)`

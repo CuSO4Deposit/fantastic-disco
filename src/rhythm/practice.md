@@ -268,11 +268,6 @@ would manufacture a rising trend on its own, so it was checked — shuffling pla
 within each chart, which destroys any real change while leaving every median identical,
 flattens the series to noise. The rise survives the control.
 
-    })
-  );
-}
-```
-
 ## The same charts, played again
 
 The deflator divides difficulty out of the pool. The other way to ask is to hold the
