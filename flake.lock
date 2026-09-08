@@ -9,11 +9,11 @@
         "pre-commit-hooks": "pre-commit-hooks"
       },
       "locked": {
-        "lastModified": 1785512216,
-        "narHash": "sha256-CAphtuIcH+8Fs+wxpGIULR7VoJF4UNMMKFMw1bBhzpk=",
+        "lastModified": 1785679242,
+        "narHash": "sha256-4bocrUVxu8QAk8K+9l2E/88Tyc9xLwtxDdP2tYwCHT0=",
         "owner": "CuSO4Deposit",
         "repo": "CPI",
-        "rev": "1fbe914bda0dd5036e40b04635ea4b2a1976c663",
+        "rev": "0413bc7ed03c220fed0c1e40632186c67b35110f",
         "type": "github"
       },
       "original": {
