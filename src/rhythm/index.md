@@ -130,11 +130,13 @@ display(
 // and mean different things, so a single y axis would invite reading one against the
 // other. Faceting would do the same. Each gets the full width.
 for (const g of played) {
-  // Arcaea's headline number is (b30 + r10) / 40, which its own recent pool feeds;
-  // no other game here has one, so the rest plot their b30 average directly.
+  // Arcaea's headline number is the v7.0 formula: the best 50 with its top 10 counted
+  // twice, and the pool alone is the whole rule — there is no recent pool to churn it.
+  // No other game here has a number distinct from its pool average, so the rest plot
+  // the pool average directly.
   const potential = g.potential ?? [];
   const series = potential.length
-    ? potential.map((p) => ({ at: new Date(p.at * 1000), value: p.potential, full: p.b30_size >= g.best_capacity }))
+    ? potential.map((p) => ({ at: new Date(p.at * 1000), value: p.potential, full: p.b50_size >= g.best_capacity }))
     : g.trend.map((p) => ({ at: new Date(p.at * 1000), value: p.average, full: p.full }));
   // Before the pool fills, the average is over however many slots are occupied, so it
   // is not comparable with what comes after. Drawn faintly rather than dropped.

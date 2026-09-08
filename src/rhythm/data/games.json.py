@@ -1,9 +1,9 @@
 """Per-game summary, potential over time, and rating bands, from Y-Offline.
 
-Everything here is flattening and renaming over `y_offline.base.analysis`. The pools
-are replayed by the SDK's own `replay_best`/`replay_recent`, so this file never decides
-what enters a b30 — a second copy of that truth table would let these pages disagree
-with the `y` CLI while both looked right.
+Everything here is flattening and renaming over `y_offline.base.analysis`. The pool is
+replayed by the SDK's own `replay_best` — Arcaea v7 dropped the recent pool that once
+sat beside it — so this file never decides what enters a pool, and a second copy of that
+truth table would let these pages disagree with the `y` CLI while both looked right.
 
 Two things this loader does decide, both presentation:
 
@@ -123,12 +123,13 @@ def main() -> None:
             "judgements": as_json(manager.judgement_shares(user)),
             "bands": as_json(manager.rating_bands(user)),
             # Only the plays that moved the pool. The unchanged ones are a flat line
-            # between them and inflate the series by an order of magnitude — 1186
-            # Arcaea plays against 424 that changed anything.
+            # between them and inflate the series by an order of magnitude — on the
+            # Arcaea archive most plays never enter the pool at all.
             #
-            # Not derivable from `potential` below, even for Arcaea: that series keeps
-            # the points where *potential* moved, and the two conditions differ — one
-            # Arcaea play enters b30 without moving potential at all.
+            # Emitted separately from `potential` below rather than derived from it:
+            # `trend` is the plain pool average, while that series keeps the points
+            # where the headline number moved, and Arcaea's headline is not its pool
+            # average — v7 counts the pool's top ten twice.
             "trend": as_json(manager.best_trend(user, only_changes=True)),
             # One value per calendar day, carried across days not played, because the
             # pool genuinely holds when nobody plays. `played` marks which is which.
@@ -152,9 +153,10 @@ def main() -> None:
                 for r in manager.implausible(user)
             ],
             "difficulty_names": game.difficulty_names,
-            # Arcaea alone has a recent pool feeding its headline number, so this is
-            # the real potential the app displays rather than a b30 average. Absent
-            # for every other game rather than faked from b30.
+            # Arcaea alone has a headline number distinct from its pool average — v7
+            # counts the pool's best ten twice — so this is the real potential the app
+            # displays rather than a pool average. Absent for every other game rather
+            # than faked from their pool.
             "potential": (
                 as_json(manager.potential_trend(user))
                 if hasattr(manager, "potential_trend")

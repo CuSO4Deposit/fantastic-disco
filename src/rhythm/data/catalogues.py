@@ -66,7 +66,7 @@ def _arcaea() -> Game | None:
         metric_label="Play potential",
         metric_note=(
             "a play's potential: the chart's rating plus a bonus above 98% accuracy, "
-            "which is the number b30 averages"
+            "which is the number the best pool averages"
         ),
     )
 

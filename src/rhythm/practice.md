@@ -5,14 +5,14 @@ title: Practice
 
 # Repertoire or skill?
 
-A best-30 pool keeps one record per chart and a play only enters by beating the weakest.
-So once it fills, **the average can never fall** — verified on this data: zero decreases
+A pool keeps one record per chart and a play only enters by beating the weakest. So
+once it fills, **the average can never fall** — verified on this data: zero decreases
 after the pool filled, in either game. Every dip on the [overview](./) curve happens
 while the pool is still filling up.
 
-That makes potential a running total of the best thirty things ever done, not a reading
-of how well you play now. It rises whenever a harder chart is attempted for the first
-time, no improvement required. This page separates the two.
+That makes potential a running total of the best things ever done, not a reading of how
+well you play now. It rises whenever a harder chart is attempted for the first time, no
+improvement required. This page separates the two.
 
 ```js
 const practice = FileAttachment("./data/practice.json").json();

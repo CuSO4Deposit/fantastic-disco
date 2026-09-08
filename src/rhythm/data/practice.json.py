@@ -4,8 +4,8 @@ A separate loader from `games.json` rather than more keys on it, because the ove
 does not need any of this and `games.json` already ships ~500kB.
 
 The question all of it serves: a full best-N pool can never fall, since a play only
-enters by beating the weakest. So potential and b30 measure the best N things ever done,
-and they rise whenever a harder chart is attempted for the first time — no improvement
+enters by beating the weakest. So the pool measures the best things ever done, and it
+rises whenever a harder chart is attempted for the first time — no improvement
 required. Everything here separates that from actually playing better.
 
 Flattening only. The deflator, the discovery split, the session-position effect and the
