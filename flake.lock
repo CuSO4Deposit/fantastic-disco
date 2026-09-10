@@ -331,11 +331,11 @@
         "pre-commit-hooks": "pre-commit-hooks_3"
       },
       "locked": {
-        "lastModified": 1787671590,
-        "narHash": "sha256-rmxkrFnkEJ5DXzWtqjjm6YLuu9sF+dQrIhlgbzNuRvI=",
+        "lastModified": 1788921220,
+        "narHash": "sha256-frWmcsSN6zOv2EbHCzEgKjVsuYfhCIijhlQSSpC0XXQ=",
         "ref": "refs/heads/main",
-        "rev": "1ebb63b0b2638bed101b14b0160cd03d1d59ae27",
-        "revCount": 104,
+        "rev": "44d3f087979f6ac60c8f4bd9a6e0cc226a8ec204",
+        "revCount": 105,
         "type": "git",
         "url": "https://codeberg.org/cocvu/Y-Offline.git"
       },
