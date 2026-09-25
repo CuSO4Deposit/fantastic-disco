@@ -63,6 +63,7 @@ SOURCES = [
         ),
         "pages": [
             {"name": "Overview", "path": "/rhythm/"},
+            {"name": "Rating", "path": "/rhythm/rating"},
             {"name": "Charts", "path": "/rhythm/charts"},
             {"name": "Practice", "path": "/rhythm/practice"},
         ],
