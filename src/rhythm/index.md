@@ -108,17 +108,23 @@ if (breakTotal > 0) {
 ```js
 display(
   htl.html`<div class="grid grid-cols-2">
-    ${played.map(
-      (g) => htl.html`<div class="card">
+    ${played.map((g) => {
+      // Arcaea's headline is not its pool average: v7.0 counts the pool's top ten twice,
+      // so `potential` is the number the app shows while `current_average` is only the
+      // b50 half of it. Every other game's headline is its pool average.
+      const potential = g.potential ?? [];
+      const headline = potential.length ? potential[potential.length - 1].potential : g.current_average;
+      const basis = potential.length
+        ? "v7.0 potential — the best 50 with the top ten counted twice"
+        : `mean ${g.metric_label.toLowerCase()} across the best ${g.activity.charts >= g.best_capacity ? g.best_capacity : g.activity.charts} charts`;
+      return htl.html`<div class="card">
         <h2>${g.name}</h2>
-        <span class="big">${g.current_average.toFixed(2)}</span>
-        <p>mean ${g.metric_label.toLowerCase()} across the best
-        ${g.activity.charts >= g.best_capacity ? g.best_capacity : g.activity.charts}
-        charts — ${g.metric_note}. ${g.activity.plays.toLocaleString()} plays on
+        <span class="big">${headline.toFixed(2)}</span>
+        <p>${basis} — ${g.metric_note}. ${g.activity.plays.toLocaleString()} plays on
         ${g.activity.charts.toLocaleString()} charts over
         ${g.activity.active_days.toLocaleString()} days.</p>
-      </div>`
-    )}
+      </div>`;
+    })}
   </div>`
 );
 ```
@@ -248,8 +254,73 @@ const sessions = played.flatMap((g) =>
 );
 ```
 
+A calendar of those sittings: every day of a chosen year, shaded by how many plays it
+held. Every game together, so a day of Arcaea and a day of PJSK both count. One year at a
+time for the same reason as the [Rating](./rating) page — a couple of years on one axis
+compresses each into an unreadable band.
+
 ```js
-Plot.plot({
+const playYears = [...new Set(sessions.map((s) => s.day.slice(0, 4)))].sort();
+```
+
+```js
+const playYear = view(
+  Inputs.select(playYears, { label: "Year", value: playYears[playYears.length - 1] })
+);
+```
+
+```js
+// GitHub's layout again: columns are weeks, rows are weekdays, one cell per day. Colour
+// is plays that day across every game together. A sitting is credited to the day it
+// started, so one running past midnight counts wholly on its first day — the convention
+// the hour chart below also uses. Days are the recording zone's, taken from the loader.
+if (playYear) {
+  const start = new Date(`${playYear}-01-01T00:00:00Z`);
+  const end = new Date(`${Number(playYear) + 1}-01-01T00:00:00Z`);
+  const firstSunday = d3.utcSunday.floor(start);
+  const byDay = d3.group(sessions, (s) => s.day);
+  const cells = d3.utcDay.range(start, end).map((d) => {
+    const day = d.toISOString().slice(0, 10);
+    const perGame = d3.rollup(
+      byDay.get(day) ?? [],
+      (v) => d3.sum(v, (s) => s.plays),
+      (s) => s.game
+    );
+    return {
+      day: day,
+      week: Math.floor(d3.utcDay.count(firstSunday, d) / 7),
+      weekday: d.getUTCDay(),
+      plays: d3.sum(perGame.values()),
+      games: [...perGame].map(([game, n]) => `${game} ${n}`).join(", ")
+    };
+  });
+  display(
+    Plot.plot({
+      title: `Every rhythm game by day, ${playYear}`,
+      subtitle: "one cell per day; colour is plays across every game, credited to the day a sitting began",
+      width,
+      height: 170,
+      // Band scales, so each axis needs the full ordered domain; see the Rating page.
+      x: { axis: null, domain: d3.range(0, d3.max(cells, (d) => d.week) + 1) },
+      y: { axis: null, domain: d3.range(0, 7) },
+      color: { scheme: "greens", label: "Plays" },
+      marks: [
+        Plot.cell(cells, {
+          x: "week",
+          y: "weekday",
+          fill: "plays",
+          inset: 0.5,
+          tip: true,
+          channels: { day: "day", games: "games" }
+        })
+      ]
+    })
+  );
+}
+```
+
+```js
+display(Plot.plot({
   title: "Plays per sitting",
   subtitle: `${sessions.length.toLocaleString()} sittings across every game; a sitting ends after 30 minutes without a play`,
   width,
@@ -261,11 +332,11 @@ Plot.plot({
     Plot.rectY(sessions, Plot.binX({ y: "count" }, { x: "plays", fill: "game", thresholds: d3.range(1, 32, 2) })),
     Plot.ruleY([0]),
   ],
-})
+}))
 ```
 
 ```js
-Plot.plot({
+display(Plot.plot({
   title: "When a sitting starts",
   subtitle: `local hour in ${played[0].timezone}, taken from when each sitting began`,
   width,
@@ -277,7 +348,7 @@ Plot.plot({
     Plot.barY(sessions, Plot.groupX({ y: "count" }, { x: "hour", fill: "game" })),
     Plot.ruleY([0]),
   ],
-})
+}))
 ```
 
 An hour here is when a sitting *began*, and it is the entry time rather than the play
