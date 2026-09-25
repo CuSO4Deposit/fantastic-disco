@@ -1,0 +1,6 @@
+dist/
+src/.observablehq/
+node_modules/
+.venv/
+result
+result-*
