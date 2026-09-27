@@ -14,10 +14,15 @@ after the pairing, which is what `only_changes=True` would have done anyway.
 No pool rule is reimplemented. `replay_best`, Arcaea's top-10 double weight and the
 notion of "entered the pool" all stay in the SDK; this only diffs consecutive values and
 names the play behind each step.
+
+A second series, `plays`, is every play's accuracy against its own chart's median — the
+per-play form the Practice page averages by month, here at play resolution. The rating
+can only show the best ever; this is what a page rolls and trims to show a usual level.
 """
 
 import datetime
 import json
+import statistics
 import sys
 from pathlib import Path
 
@@ -28,7 +33,11 @@ from catalogues import games
 
 
 def _moves(
-    manager, user: str, tz: datetime.tzinfo, difficulty_names: dict[int, str]
+    records: list,
+    points: list,
+    tz: datetime.tzinfo,
+    difficulty_names: dict[int, str],
+    capacity: int,
 ) -> list[dict]:
     """Every play that changed the potential, oldest first, each naming its record.
 
@@ -36,8 +45,6 @@ def _moves(
     nothing to come from. Rises before the pool fills are partly slots being occupied
     rather than playing better; `full` marks which is which and the page says so.
     """
-    records = manager._records_asc(user)
-    points = manager.potential_trend(user, only_changes=False)
     if len(records) != len(points):
         raise RuntimeError(
             f"potential_trend returned {len(points)} points for "
@@ -102,7 +109,7 @@ def _moves(
                     # slot filling while the pool is short moves the average by whole
                     # points, while a play beating a full pool is capped by what it
                     # displaced, so the two are not the same kind of move.
-                    "full_before": previous_size >= manager.best_capacity,
+                    "full_before": previous_size >= capacity,
                 }
             )
         previous = point.potential
@@ -112,6 +119,45 @@ def _moves(
             best_at[chart] = record.time
             best_play[chart] = seen
         plays[chart] = seen + 1
+    return out
+
+
+def _performance(
+    records: list, tz: datetime.tzinfo, min_chart_plays: int = 3
+) -> list[dict]:
+    """Every play's accuracy against its own chart's median, oldest first.
+
+    The per-play quantity `AnalysisMixin.execution_trend` averages by month; this is the
+    same at play resolution, so a page can roll a window over it and trim the tails.
+    Centring on each chart's own median keeps windows comparable — without it a stretch
+    on easy charts reads as good. The median and three-play floor match the SDK, so the
+    two views agree; a chart below the floor has no stable median and is left out.
+    """
+    by_chart: dict[tuple[str, int], list[float]] = {}
+    for record in records:
+        by_chart.setdefault((record.song_id, record.rating_class), []).append(
+            record.accuracy()
+        )
+    medians = {
+        key: statistics.median(values)
+        for key, values in by_chart.items()
+        if len(values) >= min_chart_plays
+    }
+
+    out = []
+    for record in records:
+        median = medians.get((record.song_id, record.rating_class))
+        if median is None:
+            continue
+        out.append(
+            {
+                "at": record.time,
+                "at_local": datetime.datetime.fromtimestamp(
+                    record.time, tz
+                ).isoformat(),
+                "delta": record.accuracy() - median,
+            }
+        )
     return out
 
 
@@ -128,7 +174,10 @@ def main() -> None:
         return
 
     manager = arcaea.manager
-    moves = _moves(manager, user, tz, arcaea.difficulty_names)
+    records = manager._records_asc(user)
+    points = manager.potential_trend(user, only_changes=False)
+    moves = _moves(records, points, tz, arcaea.difficulty_names, manager.best_capacity)
+    performance = _performance(records, tz)
 
     json.dump(
         {
@@ -144,6 +193,9 @@ def main() -> None:
             # drags the average down — so the page needs them to say when the pool
             # settled; it filters to the raises for the timeline itself.
             "moves": moves,
+            # Every play, for the usual-level curve: a pool of personal bests can only
+            # show the best ever, never a normal night.
+            "plays": performance,
         },
         sys.stdout,
         ensure_ascii=False,

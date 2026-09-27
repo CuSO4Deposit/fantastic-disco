@@ -243,6 +243,102 @@ rise is partly a slot being taken by a chart the pool did not previously hold �
 repertoire effect [Practice](./practice) separates out. Only after it is full does a
 raise mean a score beat one already in the pool.
 
+## Usual level, not the best
+
+The rating above is a pool of personal bests, so it only ever rises and says nothing
+about an ordinary night. This is every play instead, each measured against its own
+chart's median, then rolled over a window and trimmed — the same per-play form the
+[Practice](./practice) page averages by month, with the high and low tails cut off.
+Unlike the rating, it can fall.
+
+```js
+const plays = rating?.plays ?? []
+// The loader's delta is a fraction of accuracy; percentage points read better on the axis.
+const playRows = plays.map((p) => ({ ...p, at: new Date(p.at_local), pct: p.delta * 100 }))
+```
+
+```js
+const windowPlays = view(Inputs.range([20, 400], { label: "Window (plays)", value: 120, step: 10 }))
+```
+
+```js
+const trim = view(Inputs.range([0, 40], { label: "Trim each end (%)", value: 10, step: 1 }))
+```
+
+```js
+// A centred rolling trimmed mean, over plays in time order rather than by clock: a window
+// of plays stays statistically stable whether or not the player was active that month.
+// Only interior points are kept, so the ends are not a half-window of edge bias.
+const smoothed = (() => {
+  const n = playRows.length
+  const half = Math.floor(windowPlays / 2)
+  const out = []
+  for (let i = half; i < n - half; i++) {
+    const values = playRows
+      .slice(i - half, i + half + 1)
+      .map((p) => p.pct)
+      .sort((a, b) => a - b)
+    const cut = Math.floor((values.length * trim) / 100)
+    const kept = values.slice(cut, values.length - cut)
+    if (kept.length < 5) continue
+    out.push({ at: playRows[i].at, at_local: playRows[i].at_local, value: d3.mean(kept) })
+  }
+  return out
+})()
+
+// The axis is pinned to the line, not to the raw plays: one collapse can sit far below the
+// rest, and letting that set the extent flattens the line being read. The scattered plays
+// are still drawn, clipped to the frame.
+const level = smoothed.map((d) => d.value)
+const levelPad = Math.max(0.05, (d3.max(level) - d3.min(level)) * 0.15)
+```
+
+```js
+if (smoothed.length) {
+  display(
+    Plot.plot({
+      title: "Usual level over time",
+      subtitle: `each play is its accuracy above its own chart's median; the line is the mean over a ${windowPlays}-play window with the top and bottom ${trim}% dropped`,
+      width,
+      height: 340,
+      x: { label: null, type: "utc" },
+      y: {
+        label: "Accuracy vs the chart's median (pp)",
+        grid: true,
+        domain: [d3.min(level) - levelPad, d3.max(level) + levelPad]
+      },
+      marks: [
+        Plot.ruleY([0], { stroke: "var(--theme-foreground-muted)" }),
+        Plot.dot(playRows, {
+          x: "at",
+          y: "pct",
+          r: 1,
+          fill: "var(--theme-foreground-faint)",
+          fillOpacity: 0.15,
+          clip: true
+        }),
+        Plot.lineY(smoothed, { x: "at", y: "value", stroke: "var(--theme-foreground-focus)", strokeWidth: 2 }),
+        Plot.tip(smoothed, Plot.pointerX({ x: "at", y: "value", format: { y: (d) => d.toFixed(3) } }))
+      ]
+    })
+  )
+}
+```
+
+```js
+if (smoothed.length) {
+  const first = smoothed[0]
+  const last = smoothed[smoothed.length - 1]
+  display(
+    htl.html`<p>${playRows.length.toLocaleString()} plays on charts with at least three
+      records — a chart with fewer has no stable median to sit against. Faint dots are
+      single plays; the line is the trimmed mean, which is the only thing on this page
+      that can fall. Between ${first.at_local.slice(0, 10)} and ${last.at_local.slice(0, 10)}
+      it went from ${first.value.toFixed(3)} to ${last.value.toFixed(3)}pp.</p>`
+  )
+}
+```
+
 ## Every raise
 
 ```js
