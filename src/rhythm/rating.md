@@ -39,6 +39,12 @@ const biggest = d3.greatest(fullRaises, (m) => m.delta)
 ```
 
 ```js
+// Shared by the two step charts so their tooltips cannot drift apart.
+const moveTitle = (m) =>
+  `${m.name} · ${m.difficulty}\n${m.score_before === null ? "" : `${m.score_before.toLocaleString()} → `}${m.score.toLocaleString()}\n${m.from.toFixed(4)} → ${m.to.toFixed(4)} (+${m.delta.toFixed(4)})${m.score_before === null ? "" : `\n${m.plays_since_best} plays over ${m.days_since_best.toFixed(1)}d since the last best`}`
+```
+
+```js
 if (rating === null) {
   display(
     htl.html`<div class="warning">
@@ -153,44 +159,81 @@ if (year) {
 ```
 
 ```js
+// Plot has no zoom mark, so d3-zoom drives an explicit x domain and the chart is rebuilt
+// around it — wheel or pinch to zoom, drag to pan, double-click to zoom in. The y domain
+// is recomputed from the visible span on every rebuild: pinning it to the whole year would
+// leave a zoomed-in day looking flat, which is the very thing being fixed.
+const zoomableX = (render, { full, width, height }) => {
+  const container = document.createElement("div")
+  const fullScale = d3.scaleUtc().domain(full).range([0, width])
+  let transform = d3.zoomIdentity
+  let applying = false
+  const zoom = d3
+    .zoom()
+    .scaleExtent([1, 500])
+    .extent([
+      [0, 0],
+      [width, height]
+    ])
+    .translateExtent([
+      [0, 0],
+      [width, height]
+    ])
+    .on("zoom", (event) => {
+      if (applying) return
+      transform = event.transform
+      update()
+    })
+  function update() {
+    const [start, end] = [fullScale.invert(transform.invertX(0)), fullScale.invert(transform.invertX(width))]
+    const svg = render([start, end])
+    d3.select(svg).call(zoom)
+    applying = true
+    d3.select(svg).call(zoom.transform, transform)
+    applying = false
+    container.replaceChildren(svg)
+  }
+  update()
+  return container
+}
+```
+
+```js
 if (year) {
   display(
-    Plot.plot({
-      title: `${rating?.name ?? "Arcaea"} — potential in ${year}`,
-      subtitle: `${yearRows.length.toLocaleString()} plays moved the number, ${yearRaises.length.toLocaleString()} of them up`,
-      width,
-      height: 300,
-      x: { label: null, type: "utc", domain: [yearStart, yearEnd] },
-      y: {
-        label: rating?.metric_label ?? "Play potential",
-        grid: true,
-        nice: true
-      },
-      marks: [
-        Plot.lineY(series, {
-          x: "at",
-          y: "to",
-          stroke: "var(--theme-foreground-muted)",
-          strokeWidth: 1,
-          curve: "step-after"
-        }),
-        Plot.dot(yearRaises, {
-          x: "at",
-          y: "to",
-          r: 2,
-          fill: "var(--theme-foreground-focus)"
-        }),
-        Plot.tip(
-          yearRaises,
-          Plot.pointerX({
-            x: "at",
-            y: "to",
-            title: (m) =>
-              `${m.name} · ${m.difficulty}\n${m.score_before === null ? "" : `${m.score_before.toLocaleString()} → `}${m.score.toLocaleString()}\n${m.from.toFixed(4)} → ${m.to.toFixed(4)} (+${m.delta.toFixed(4)})${m.score_before === null ? "" : `\n${m.plays_since_best} plays over ${m.days_since_best.toFixed(1)}d since the last best`}`
-          })
+    zoomableX(
+      (domain) => {
+        const inView = series.filter((d) => d.at >= domain[0] && d.at <= domain[1])
+        const carry = d3.greatest(
+          series.filter((d) => d.at < domain[0]),
+          (d) => d.at
         )
-      ]
-    })
+        const next = series.find((d) => d.at > domain[1])
+        const values = [...(carry ? [carry.to] : []), ...inView.map((d) => d.to), ...(next ? [next.to] : [])]
+        const [lo, hi] = d3.extent(values.length ? values : [0, 1])
+        const pad = lo === hi ? 0.01 : (hi - lo) * 0.1
+        return Plot.plot({
+          title: `${rating?.name ?? "Arcaea"} — potential in ${year}`,
+          subtitle: "wheel or pinch to zoom the time axis, drag to pan; the vertical range follows what is in view",
+          width,
+          height: 640,
+          x: { label: null, type: "utc", domain },
+          y: { label: rating?.metric_label ?? "Play potential", grid: true, domain: [lo - pad, hi + pad] },
+          marks: [
+            Plot.lineY(series, {
+              x: "at",
+              y: "to",
+              stroke: "var(--theme-foreground-muted)",
+              strokeWidth: 1,
+              curve: "step-after"
+            }),
+            Plot.dot(yearRaises, { x: "at", y: "to", r: 2, fill: "var(--theme-foreground-focus)" }),
+            Plot.tip(yearRaises, Plot.pointerX({ x: "at", y: "to", title: moveTitle }))
+          ]
+        })
+      },
+      { full: [yearStart, yearEnd], width, height: 640 }
+    )
   )
 }
 ```
